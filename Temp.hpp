@@ -1,11 +1,13 @@
 #pragma once
 
 // I could've used the "Arduino PID" library, but this was more fo a learning experience 
-// plus, i made the decision to not use any Library so I decided to write my own 
-// .. even if it was the same thing .. Internet can be a great reference
+// plus, I made the decision to not use any Library so I decided to write my own 
+// .. even if it was the same thing .. Internet can be a great reference.
 
 // Description :
 // PID Controller Implementation
+// NTC Thermistor interface with SteinHart Algotithem
+// Heater Interface ( just a class that combines PWm, Thermistor and PID )
 
 #include "Arduino.h"
 #include "Temp.hpp"

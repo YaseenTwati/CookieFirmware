@@ -37,8 +37,6 @@ void Temperature::PID::SetTarget(float t_setPoint)
 
 // -----------------------------------------------
 
-// Sorry Styling Guidelines xD .. i just had to use capital letters for local P, I and D variables
-// it just looks much better here xD ... lol
 float Temperature::PID::Compute(float t_input)
 {
   float now = millis();
@@ -233,6 +231,7 @@ bool Temperature::Heater::IsStable()
 void Temperature::Heater::Stabelize()
 {
 #ifdef DEBUG_H_STABLEIZATION
+  // This looks weird, but i made it this way so i could see this message easily between other debugging messages
   Serial.println("[[[[[[[[[[[[[[[[[[ Temperature Stabilization Started ]]]]]]]]]]]]]]]]]]]");
 #endif
 

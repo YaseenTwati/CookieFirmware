@@ -4,7 +4,6 @@
 
 GCode::Parameters GCode::Parse(char* t_buffer)
 {
-
 #ifdef COMMENT_SAFE
   char* comment = strchr(t_buffer, ';');
   if (comment != NULL)
@@ -18,8 +17,6 @@ GCode::Parameters GCode::Parse(char* t_buffer)
 #endif
 
   int length = strlen(t_buffer);
-
-
 
 #ifdef LOOKFOR_CHECKSUM
 
@@ -54,13 +51,7 @@ GCode::Parameters GCode::Parse(char* t_buffer)
       params.checksum = false;
       return params;
     }
-
   }
-
-  // Look for a Checksum
-
-
-
 #else
 
   // We are not looking for checksums, but line number may still be provided and it will break the parsing if we dont check it ..
@@ -70,7 +61,7 @@ GCode::Parameters GCode::Parse(char* t_buffer)
     t_buffer = strchr(t_buffer, ' ');
     t_buffer++;
   }
-
+  
 #endif
 
   for (int i = 0; i < length; i++)
@@ -154,7 +145,6 @@ GCode::Parameters GCode::Parse(char* t_buffer)
         if (pos != NULL)
           params.p = atof(pos + 1);
         break;
-
     }
   }
   else // M
@@ -170,9 +160,7 @@ GCode::Parameters GCode::Parse(char* t_buffer)
     pos = strchr(t_buffer, 'T');
     if (pos != NULL)
       params.t = atof(pos + 1);
-
   }
-
   return params;
 }
 

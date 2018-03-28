@@ -20,7 +20,7 @@ void Cookie::InitializeCookieFirmware()
   TCCR1A = 0;
   TCCR1B = 0;
 
-  TCNT1 = 8572; // 2Hz ( every 500ms )
+  TCNT1 = 8572; // 8Hz ( if I did my calculations correctly xD )
 
   TCCR1B |= (1 << CS12 ); // 256 prescaler
 
@@ -181,17 +181,6 @@ void Cookie::ExecuteLine(GCode::Parameters t_params)
           // Draw the line ..
           PerformG1(t_params.x, t_params.y, t_params.z, t_params.e);
 
-          // Update current position
-
-          if (t_params.x != -1)
-            currentX = t_params.x;
-          if (t_params.y != -1)
-            currentY = t_params.y;
-          if (t_params.z != -1)
-            currentZ = t_params.z;
-          if (t_params.e != -1)
-            currentE = t_params.e;
-
 #ifdef DEBUG_POSITION
           Serial.print("X : "); Serial.print(currentX); Serial.print("   Y : "); Serial.print(currentZ); Serial.print("   Z : "); Serial.print(currentZ); Serial.print("   E : "); Serial.println(currentE);
 #endif
@@ -274,7 +263,6 @@ void Cookie::ExecuteLine(GCode::Parameters t_params)
         }
 #endif
 
-
       case 105 : // Get Current Temperature
         {
           ReportTemperature();
@@ -314,7 +302,6 @@ void Cookie::ExecuteLine(GCode::Parameters t_params)
           Serial.print("Unsupported M Command : [M"); Serial.print(t_params.code); Serial.println("]");
 #endif
         }
-
     }
   }
 
@@ -326,8 +313,8 @@ void Cookie::ExecuteLine(GCode::Parameters t_params)
 
 void Cookie::PerformG1(float t_x, float t_y, float t_z, float t_e)
 {
-  unsigned long start_t  = 0;
-  unsigned long end_t = 0;
+  //unsigned long start_t  = 0;
+  //unsigned long end_t = 0;
 
   // TL;DR
   // Calculate deltas of every axis
@@ -337,6 +324,8 @@ void Cookie::PerformG1(float t_x, float t_y, float t_z, float t_e)
   // Calculat the number of steps for every axis
   // Calculate the delays ( speed ) based on the number of steps of every axis
   // Loop and steps motors untill all done
+  // Put account for floating point remainders and rounding errors
+  // Update teh current position and offset with whaever rounding erorr we have
 
   // if something is -1 that means it has been left as is and should not be moved
   if (t_x == -1) t_x = currentX;
@@ -344,12 +333,23 @@ void Cookie::PerformG1(float t_x, float t_y, float t_z, float t_e)
   if (t_z == -1) t_z = currentZ;
   if (t_e == -1) t_e = currentE;
 
-
   // do not allow the extruder to go backwards
 #ifdef DISALLOW_EXTRUDER_RETRACTION
   if (t_e < currentE)
     t_e = currentE;
 #endif
+
+  // -----------------------------------------------
+  // Float Remainders
+
+  // When doing our #_STEPS_MM * Distance we usually dont get a "whole number", we get some fractional parts, if those simple get rounded on/off
+  // Error accumelates over time and this can create a MASSIVE shifting in one of the axis, so they have to added to the next move, or the one after it
+  // Essentially until it becomes a whole "1.0" step that we can send to the stepper .. this wil ensure we have a much better repeatability.
+
+  float fractionalX = 0.0;
+  float fractionalY = 0.0;
+  float fractionalZ = 0.0;
+  float fractionalE = 0.0;
 
 
   // Calculate Deltas ---------------
@@ -398,11 +398,33 @@ void Cookie::PerformG1(float t_x, float t_y, float t_z, float t_e)
   }
   // Calculate The Total Number of Steps and the required delay between steps ---------------
 
-  unsigned long totalStepsX = (dx * X_STEPS_MM );
-  unsigned long totalStepsY = (dy * Y_STEPS_MM );
-  unsigned long totalStepsZ = (dz * Z_STEPS_MM );
-  unsigned long totalStepsE = (de * E_STEPS_MM );
+  // Calculate Total Steps
+  float totalStepsX = (dx * X_STEPS_MM );
+  float totalStepsY = (dy * Y_STEPS_MM );
+  float totalStepsZ = (dz * Z_STEPS_MM );
+  float totalStepsE = (de * E_STEPS_MM );
 
+  // This did not work .. creates non-uniform shifting
+  //  // Add the previous Fracttional Part
+  //  totalStepsX += fractionalX;
+  //  totalStepsY += fractionalY;
+  //  totalStepsZ += fractionalZ;
+  //  totalStepsE += fractionalE;
+  //
+  //  // Save the Fractional part for later
+  //  fractionalX = modff(totalStepsX, &totalStepsX);
+  //  fractionalY = modff(totalStepsY, &totalStepsY);
+  //  fractionalZ = modff(totalStepsZ, &totalStepsZ);
+  //  fractionalE = modff(totalStepsX, &totalStepsX);
+
+  // Remove the fractional part of the number and store it for alter
+  // since we cant step "part of a step" ..
+  fractionalX = modff(totalStepsX, &totalStepsX);
+  fractionalY = modff(totalStepsY, &totalStepsY);
+  fractionalZ = modff(totalStepsZ, &totalStepsZ);
+  fractionalE = modff(totalStepsX, &totalStepsX);
+
+  // Calculate delays ...
   unsigned long delayTimeX =  ( duration / totalStepsX );
   unsigned long delayTimeY =  ( duration / totalStepsY );
   unsigned long delayTimeZ =  ( duration / totalStepsZ );
@@ -513,8 +535,56 @@ void Cookie::PerformG1(float t_x, float t_y, float t_z, float t_e)
       }
     }
   }
-
 #endif
+
+  // Update current position -------------------------------------
+
+  if (t_x != -1)
+  {
+    fractionalX /= X_STEPS_MM;
+    currentX = t_x;
+    if (t_x > currentX) // Forward .. remove offset
+      currentX -= fractionalX;
+    else  // Backwards ? add the offset
+      currentX += fractionalX;
+  }
+
+  if (t_y != -1)
+  {
+    fractionalY /= Y_STEPS_MM;
+    currentY = t_y;
+    if (t_y > currentY)
+      currentY -= fractionalY;
+    else
+      currentY += fractionalY;
+  }
+
+  if (t_z != -1)
+  {
+    fractionalZ /= Z_STEPS_MM;
+    currentY = t_z;
+    if (t_z > currentZ)
+      currentZ -= fractionalZ;
+    else
+      currentZ += fractionalZ;
+  }
+
+  if (t_e != -1)
+  {
+    // This isnt exactly needed for the extruder as we are not really looking for "repeatability" that much .. 
+    // and a bit of offset will not hurt
+    // keeping this off will require a bit less calculations .. aka .. a bit faster computation
+#ifdef EXTRUDER_FLOATING_POINT_PRECISION
+    fractionalE /= E_STEPS_MM;
+    currentE = t_e;
+    if (t_e > currentE)
+      currentE -= fractionalE;
+    else
+      currentE += fractionalE;
+#else
+    currentE = t_e;
+#endif
+  }
 }
 
 // -----------------------------------------------
@@ -550,7 +620,6 @@ void Cookie::HomeAxis(bool t_hx, bool t_hy, bool t_hz)
       stepperX.Step();
       delayMicroseconds(delayTimeX);
     }
-
     currentX = 0;
   }
 
@@ -561,7 +630,6 @@ void Cookie::HomeAxis(bool t_hx, bool t_hy, bool t_hz)
       stepperY.Step();
       delayMicroseconds(delayTimeY);
     }
-
     currentY = 0;
   }
 
@@ -572,7 +640,6 @@ void Cookie::HomeAxis(bool t_hx, bool t_hy, bool t_hz)
       stepperZ.Step();
       delayMicroseconds(delayTimeZ);
     }
-
     currentZ = 0;
   }
 }
@@ -591,9 +658,7 @@ void Cookie::Kill()
   heater_hotend.SetTemperature(0.0);
 
 #ifdef ENABLE_HEATEDBED
-
   heater_bed.SetTemperature(0.0);
-
 #endif
 
   Serial.println("// FATAL ERROR ... KILLING");
@@ -622,7 +687,6 @@ void Cookie::ReportTemperature(bool t_comment)
   {
     Serial.print("// T:"); Serial.print(hotend_temp); Serial.print(" B: "); Serial.println(bed_temp);
   }
-
 }
 
 // -----------------------------------------------

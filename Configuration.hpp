@@ -14,10 +14,10 @@
 // ------------------------------------
 //  Movement ( Steps/mm )
 // ------------------------------------
-#define X_STEPS_MM 180
-#define Y_STEPS_MM 180
-#define Z_STEPS_MM 800
-#define E_STEPS_MM 241
+#define X_STEPS_MM 180.0
+#define Y_STEPS_MM 180.0
+#define Z_STEPS_MM 800.0
+#define E_STEPS_MM 241.0
 
 // ------------------------------------
 //  Temperature
@@ -31,6 +31,10 @@
 
 #define PID_KP 14.95
 #define PID_KI 0
+//#define PID_KI 17.4
+//#define PID_KI 0.7
+//#define PID_KI 1.8
+
 #define PID_KD 122
 
 #define PID_OUT_MAX 254
@@ -40,7 +44,7 @@
 
 // ---------------------
 
-#define HEATER_STABLE_SAMPLE_TIME 6000 // 5 seconds
+#define HEATER_STABLE_SAMPLE_TIME 6000 // 6 seconds
 #define HEATER_STABLE_SAMPLE_COUNT 6
 #define HEATER_DEADBAND 3 // tolerence for temperature
 
@@ -49,9 +53,10 @@
 // ------------------------------------
 
 // Control board Selection
+//#define CUSTOM_BOARD
 #define RAMPS_14
 
-#ifdef RAMPS_14
+#ifdef RAMPS_14 // -----------------------------------------------
 
 #define X_STEP_P  54
 #define X_DIR_P   55
@@ -79,11 +84,36 @@
 #define BED_P 0
 #define BED_NTC_P 0
 
-#elif defined(CUSTOM_BOARD)
+#elif defined(CUSTOM_BOARD) // -----------------------------------------------
 
-// Otherboard
+#define X_STEP_P  2
+#define X_DIR_P   A3
+#define X_EN_P    4
 
-#endif
+#define Y_STEP_P  5
+#define Y_DIR_P   6
+#define Y_EN_P    7
+
+#define Z_STEP_P  8
+#define Z_DIR_P   9
+#define Z_EN_P    10
+
+#define E_STEP_P  11
+#define E_DIR_P   12
+#define E_EN_P    13
+
+#define X_MIN     A0
+#define Y_MIN     A1
+#define Z_MIN     A2
+
+#define HOTEND_P  3 // has to be PWM Pin
+#define HOTEND_NTC_P     A4
+
+// disabled for now ..
+#define BED_P 0
+#define BED_NTC_P 0
+
+#endif // -----------------------------------------------
 
 // ------------------------------------
 //  Other Settings
@@ -100,6 +130,8 @@
 #define INITIAL_FEEDRATE 40
 
 #define DISALLOW_EXTRUDER_RETRACTION
+
+//#define EXTRUDER_FLOATING_POINT_PRECISION
 
 // ------------------------------------
 //  Debugging Stuff

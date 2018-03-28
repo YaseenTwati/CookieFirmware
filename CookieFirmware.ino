@@ -8,20 +8,6 @@
 //
 //  This Firmware implements the basic needed features to get a 3D Printer working
 //
-//  Implemented :
-//
-//  * Movement and Acceleration ( Constant Acceleration )
-//  * 4 Axis ( X, Y, Z and E )
-//  * Single Extruder and (maybe) Single Heated bed
-//  
-//  Features that may be implemented in the future :
-//
-//  * SD Card Support
-//  * Dual Extruder ? ( Do not currently have the hardware for that )
-//  * EEPROM Settings
-//  * Better Stepper Timing using a DDA
-//
-//
 //  Supported GCodes : G00 , G01, G4, G28, G92, M104, M109, M106, M119, M112, M114, M105
 //
 // -----------------------------------------------------------------------------------
